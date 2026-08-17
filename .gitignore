@@ -14,6 +14,7 @@
 # Banco de dados local
 # =========================
 
+*.db
 *.db-shm
 *.db-wal
 *.sqlite
