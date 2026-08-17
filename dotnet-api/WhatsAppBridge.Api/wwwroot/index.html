@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>WhatsApp Bridge</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                system-ui,
+                -apple-system,
+                sans-serif;
+
+            background: #07111f;
+            color: #e5edf6;
+        }
+
+        header {
+            padding: 24px 32px;
+            border-bottom: 1px solid #1d2b3d;
+            background: #0b1726;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        header p {
+            margin: 5px 0 0;
+            color: #8393a7;
+            font-size: 14px;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: auto;
+            padding: 28px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(190px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #0d1b2b;
+            border: 1px solid #1d2b3d;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .label {
+            color: #8190a5;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .value {
+            margin-top: 8px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .online {
+            color: #45d483;
+        }
+
+        .offline {
+            color: #ff6b6b;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 17px;
+        }
+
+        .message {
+            padding: 14px 0;
+            border-bottom: 1px solid #1c2a3a;
+        }
+
+        .message:last-child {
+            border-bottom: none;
+        }
+
+        .message-text {
+            font-size: 15px;
+            margin: 8px 0;
+        }
+
+        .message-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: #74859b;
+            font-size: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #19293c;
+            color: #9fb2c9;
+            font-size: 11px;
+        }
+
+        .badge.green {
+            background: #123726;
+            color: #64e39b;
+        }
+
+        .badge.blue {
+            background: #132f4c;
+            color: #6eb8ff;
+        }
+
+        .event {
+            padding: 10px;
+            background: #101f30;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        input {
+            width: 100%;
+            margin-top: 6px;
+            margin-bottom: 14px;
+            padding: 11px;
+
+            color: white;
+            background: #071421;
+
+            border: 1px solid #26384d;
+            border-radius: 7px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #45d483;
+        }
+
+        button {
+            width: 100%;
+            padding: 11px;
+
+            border: 0;
+            border-radius: 7px;
+
+            background: #24b96c;
+            color: white;
+
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #20a960;
+        }
+
+        #contact-result {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #8da0b6;
+        }
+
+        .empty {
+            color: #65768b;
+            padding: 20px 0;
+        }
+
+        @media (max-width: 850px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>WhatsApp Bridge</h1>
+
+    <p>
+        Android Native Agent · Redis ·  Golang · .NET
+    </p>
+</header>
+
+<main>
+
+    <section class="stats">
+
+        <div class="card">
+            <div class="label">Redis</div>
+            <div
+                id="redis-status"
+                class="value"
+            >
+                --
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">
+                Latência Redis
+            </div>
+
+            <div
+                id="redis-latency"
+                class="value"
+            >
+                --
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">
+                Comandos pendentes
+            </div>
+
+            <div
+                id="commands"
+                class="value"
+            >
+                --
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">
+                Eventos recentes
+            </div>
+
+            <div
+                id="events-count"
+                class="value"
+            >
+                --
+            </div>
+        </div>
+
+    </section>
+
+
+    <section class="layout">
+
+        <div class="card">
+
+            <h2>
+                Mensagens do WhatsApp
+            </h2>
+
+            <div id="messages"></div>
+
+        </div>
+
+
+        <div>
+
+            <div
+                class="card"
+                style="margin-bottom:20px"
+            >
+
+                <h2>
+                    Criar contato
+                </h2>
+
+                <form id="contact-form">
+
+                    <label>
+                        Nome
+                    </label>
+
+                    <input
+                        id="name"
+                        placeholder="João Teste"
+                        required
+                    >
+
+                    <label>
+                        Número
+                    </label>
+
+                    <input
+                        id="number"
+                        placeholder="5511999999999"
+                        required
+                    >
+
+                    <button type="submit">
+                        Enviar para Android
+                    </button>
+
+                </form>
+
+                <div id="contact-result"></div>
+
+            </div>
+
+
+            <div class="card">
+
+                <h2>
+                    Eventos do agente
+                </h2>
+
+                <div id="events"></div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+const escapeHtml = value =>
+    String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+
+async function refresh() {
+
+    try {
+
+        // SQLite / mensagens persistidas
+        const messagesResponse =
+            await fetch("/api/messages?limit=100");
+
+        if (!messagesResponse.ok) {
+            throw new Error(
+                "Messages unavailable"
+            );
+        }
+
+        const messages =
+            await messagesResponse.json();
+
+        const persistedMessageEvents =
+            messages.map(
+                message => ({
+                    id:
+                        message.redisEventId,
+
+                    type:
+                        "whatsapp.message",
+
+                    fields: {
+                        message_id:
+                            message.whatsAppMessageId,
+
+                        chat_jid:
+                            message.chatJid,
+
+                        sender_jid:
+                            message.senderJid,
+
+                        text:
+                            message.text,
+
+                        from_me:
+                            message.fromMe
+                                ? "1"
+                                : "0",
+
+                        message_type:
+                            message.messageType,
+
+                        created_at:
+                            message.createdAt,
+
+                        persisted_at:
+                            message.persistedAt
+                    }
+                })
+            );
+
+        renderMessages(
+            persistedMessageEvents
+        );
+
+
+        // Redis / estado operacional
+        try {
+
+            const dashboardResponse =
+                await fetch("/api/dashboard");
+
+            if (!dashboardResponse.ok) {
+                throw new Error(
+                    "Dashboard unavailable"
+                );
+            }
+
+            const data =
+                await dashboardResponse.json();
+
+
+            const redisStatus =
+                document.getElementById(
+                    "redis-status"
+                );
+
+            redisStatus.textContent =
+                "Online";
+
+            redisStatus.className =
+                "value online";
+
+
+            document.getElementById(
+                "redis-latency"
+            ).textContent =
+                data.redis.latency_ms + " ms";
+
+
+            document.getElementById(
+                "commands"
+            ).textContent =
+                data.commands.pending;
+
+
+            document.getElementById(
+                "events-count"
+            ).textContent =
+                data.events.length;
+
+
+            renderEvents(
+                data.events
+            );
+
+        } catch (error) {
+
+            const redisStatus =
+                document.getElementById(
+                    "redis-status"
+                );
+
+            redisStatus.textContent =
+                "Offline";
+
+            redisStatus.className =
+                "value offline";
+
+
+            document.getElementById(
+                "redis-latency"
+            ).textContent =
+                "-";
+
+
+            document.getElementById(
+                "commands"
+            ).textContent =
+                "-";
+
+
+            document.getElementById(
+                "events-count"
+            ).textContent =
+                "-";
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load persisted messages:",
+            error
+        );
+    }
+}
+
+function renderMessages(events) {
+
+    const container =
+        document.getElementById(
+            "messages"
+        );
+
+    const messages =
+        events.filter(
+            event =>
+                event.type ===
+                "whatsapp.message"
+        );
+
+    if (!messages.length) {
+
+        container.innerHTML =
+            '<div class="empty">' +
+            'Nenhuma mensagem recebida ainda.' +
+            '</div>';
+
+        return;
+    }
+
+    container.innerHTML =
+        messages.map(event => {
+
+            const fields =
+                event.fields || {};
+
+            const direction =
+                fields.from_me === "1"
+                    ? "Enviada"
+                    : "Recebida";
+
+            const badgeClass =
+                fields.from_me === "1"
+                    ? "blue"
+                    : "green";
+
+            return `
+                <div class="message">
+
+                    <div>
+
+                        <span
+                            class="badge ${badgeClass}"
+                        >
+                            ${direction}
+                        </span>
+
+                        <span class="badge">
+                            ${escapeHtml(
+                                fields.chat_jid
+                                || "sem JID"
+                            )}
+                        </span>
+
+                    </div>
+
+                    <div class="message-text">
+                        ${escapeHtml(
+                            fields.text
+                            || "[evento sem texto]"
+                        )}
+                    </div>
+
+                    <div class="message-meta">
+
+                        <span>
+                            ID:
+                            ${escapeHtml(
+                                fields.message_id
+                            )}
+                        </span>
+
+                        <span>
+                            Tipo:
+                            ${escapeHtml(
+                                fields.message_type
+                            )}
+                        </span>
+
+                        <span>
+                            ${escapeHtml(
+                                fields.persisted_at
+                            )}
+                        </span>
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+}
+
+
+function renderEvents(events) {
+
+    const container =
+        document.getElementById(
+            "events"
+        );
+
+    if (!events.length) {
+
+        container.innerHTML =
+            '<div class="empty">' +
+            'Sem eventos.' +
+            '</div>';
+
+        return;
+    }
+
+    container.innerHTML =
+        events
+            .slice(0, 15)
+            .map(event => `
+
+                <div class="event">
+
+                    <strong>
+                        ${escapeHtml(
+                            event.type
+                        )}
+                    </strong>
+
+                    <br>
+
+                    <span
+                        style="color:#71849a"
+                    >
+                        ${new Date(
+                            event.receivedAt
+                        ).toLocaleTimeString()}
+                    </span>
+
+                </div>
+
+            `)
+            .join("");
+}
+
+
+document
+    .getElementById(
+        "contact-form"
+    )
+    .addEventListener(
+        "submit",
+        async event => {
+
+            event.preventDefault();
+
+            const result =
+                document.getElementById(
+                    "contact-result"
+                );
+
+            result.textContent =
+                "Enviando...";
+
+            const name =
+                document
+                    .getElementById("name")
+                    .value;
+
+            const number =
+                document
+                    .getElementById("number")
+                    .value;
+
+            try {
+
+                const response =
+                    await fetch(
+                        "/contacts",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    name,
+                                    number
+                                })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error
+                        || "Erro"
+                    );
+                }
+
+                result.textContent =
+                    "✓ Comando enviado ao Android";
+
+                document
+                    .getElementById(
+                        "contact-form"
+                    )
+                    .reset();
+
+                refresh();
+
+            } catch (error) {
+
+                result.textContent =
+                    "Erro: " +
+                    error.message;
+            }
+        }
+    );
+
+
+refresh();
+
+setInterval(
+    refresh,
+    2000
+);
+
+</script>
+
+</body>
+</html>
